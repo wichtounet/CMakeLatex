@@ -464,7 +464,7 @@ ENDFUNCTION(LATEX_COPY_INPUT_FILE)
 
 FUNCTION(LATEX_USAGE command message)
     MESSAGE(SEND_ERROR
-        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [USE_GLOSSARY]\n           [MANGLE_TARGET_NAMES])"
+        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [USE_GLOSSARY])"
         )
 ENDFUNCTION(LATEX_USAGE command message)
 
@@ -475,7 +475,7 @@ FUNCTION(PARSE_ADD_LATEX_ARGUMENTS command)
     LATEX_PARSE_ARGUMENTS(
         LATEX
         "BIBFILES;INPUTS;IMAGE_DIRS;IMAGES;CONFIGURE;DEPENDS"
-        "USE_INDEX;USE_GLOSSARY;USE_GLOSSARIES;MANGLE_TARGET_NAMES"
+        "USE_INDEX;USE_GLOSSARY;USE_GLOSSARIES"
         ${ARGN}
         )
 
@@ -506,13 +506,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     SET(pdflatex_build_command ${PDFLATEX_COMPILER} -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
 
     # Set up target names.
-    IF (LATEX_MANGLE_TARGET_NAMES)
-        SET(pdf_target      ${LATEX_TARGET}_pdf)
-        SET(auxclean_target ${LATEX_TARGET}_auxclean)
-    ELSE (LATEX_MANGLE_TARGET_NAMES)
-        SET(pdf_target      pdf)
-        SET(auxclean_target auxclean)
-    ENDIF (LATEX_MANGLE_TARGET_NAMES)
+    SET(pdf_target      pdf)
+    SET(auxclean_target auxclean)
 
     # Probably not all of these will be generated, but they could be.
     # Note that the aux file is added later.
