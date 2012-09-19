@@ -502,15 +502,8 @@ ENDFUNCTION(PARSE_ADD_LATEX_ARGUMENTS)
 
 FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     # The commands to run LaTeX.  They are repeated multiple times.
-    SET(latex_build_command
-        ${LATEX_COMPILER} ${LATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT}
-        )
-    SET(pdflatex_draft_command
-        ${PDFLATEX_COMPILER} -draftmode -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT}
-        )
-    SET(pdflatex_build_command
-        ${PDFLATEX_COMPILER} -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT}
-        )
+    SET(pdflatex_draft_command ${PDFLATEX_COMPILER} -draftmode -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
+    SET(pdflatex_build_command ${PDFLATEX_COMPILER} -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
 
     # Set up target names.
     IF (LATEX_MANGLE_TARGET_NAMES)
