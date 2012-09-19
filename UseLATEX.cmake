@@ -464,7 +464,7 @@ ENDFUNCTION(LATEX_COPY_INPUT_FILE)
 
 FUNCTION(LATEX_USAGE command message)
     MESSAGE(SEND_ERROR
-        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [USE_GLOSSARY]\n           [DEFAULT_PDF] [DEFAULT_SAFEPDF]\n           [MANGLE_TARGET_NAMES])"
+        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [USE_GLOSSARY]\n           [MANGLE_TARGET_NAMES])"
         )
 ENDFUNCTION(LATEX_USAGE command message)
 
@@ -475,7 +475,7 @@ FUNCTION(PARSE_ADD_LATEX_ARGUMENTS command)
     LATEX_PARSE_ARGUMENTS(
         LATEX
         "BIBFILES;INPUTS;IMAGE_DIRS;IMAGES;CONFIGURE;DEPENDS"
-        "USE_INDEX;USE_GLOSSARY;USE_GLOSSARIES;DEFAULT_PDF;MANGLE_TARGET_NAMES"
+        "USE_INDEX;USE_GLOSSARY;USE_GLOSSARIES;MANGLE_TARGET_NAMES"
         ${ARGN}
         )
 
@@ -633,13 +633,9 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
         COMMAND ${make_pdf_command}
         DEPENDS ${make_pdf_depends}
         )
-    IF (LATEX_DEFAULT_PDF)
-        ADD_CUSTOM_TARGET(${pdf_target} ALL
-            DEPENDS ${output_dir}/${LATEX_TARGET}.pdf)
-    ELSE (LATEX_DEFAULT_PDF)
-        ADD_CUSTOM_TARGET(${pdf_target}
-            DEPENDS ${output_dir}/${LATEX_TARGET}.pdf)
-    ENDIF (LATEX_DEFAULT_PDF)
+    
+    ADD_CUSTOM_TARGET(${pdf_target} ALL
+        DEPENDS ${output_dir}/${LATEX_TARGET}.pdf)
 
     ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/fast_${LATEX_TARGET}.pdf
         COMMAND ${make_pdf_fast_command}
