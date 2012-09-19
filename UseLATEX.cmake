@@ -669,38 +669,37 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
     ENDIF (LATEX_USE_INDEX)
 
+    # In fast mode, only do one pass
     SET(make_pdf_fast_command ${make_pdf_fast_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${pdflatex_build_command})
 
+    # Do two pass at the end
     SET(make_pdf_command ${make_pdf_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${pdflatex_draft_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${pdflatex_build_command})
 
-    # Add commands and targets for building pdf outputs (with pdflatex).
-    IF (PDFLATEX_COMPILER)
-        ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${LATEX_TARGET}.pdf
-            COMMAND ${make_pdf_command}
-            DEPENDS ${make_pdf_depends}
-            )
-        IF (LATEX_DEFAULT_PDF)
-            ADD_CUSTOM_TARGET(${pdf_target} ALL
-                DEPENDS ${output_dir}/${LATEX_TARGET}.pdf)
-        ELSE (LATEX_DEFAULT_PDF)
-            ADD_CUSTOM_TARGET(${pdf_target}
-                DEPENDS ${output_dir}/${LATEX_TARGET}.pdf)
-        ENDIF (LATEX_DEFAULT_PDF)
+    # Finally add the target to the makefile
+    ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${LATEX_TARGET}.pdf
+        COMMAND ${make_pdf_command}
+        DEPENDS ${make_pdf_depends}
+        )
+    IF (LATEX_DEFAULT_PDF)
+        ADD_CUSTOM_TARGET(${pdf_target} ALL
+            DEPENDS ${output_dir}/${LATEX_TARGET}.pdf)
+    ELSE (LATEX_DEFAULT_PDF)
+        ADD_CUSTOM_TARGET(${pdf_target}
+            DEPENDS ${output_dir}/${LATEX_TARGET}.pdf)
+    ENDIF (LATEX_DEFAULT_PDF)
 
-        ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/fast_${LATEX_TARGET}.pdf
-            COMMAND ${make_pdf_fast_command}
-            DEPENDS ${make_pdf_depends}
-            )
-        ADD_CUSTOM_TARGET(fast
-            DEPENDS ${output_dir}/fast_${LATEX_TARGET}.pdf)
-
-    ENDIF (PDFLATEX_COMPILER)
+    ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/fast_${LATEX_TARGET}.pdf
+        COMMAND ${make_pdf_fast_command}
+        DEPENDS ${make_pdf_depends}
+        )
+    ADD_CUSTOM_TARGET(fast
+        DEPENDS ${output_dir}/fast_${LATEX_TARGET}.pdf)
 
     SET_DIRECTORY_PROPERTIES(.
         ADDITIONAL_MAKE_CLEAN_FILES "${auxiliary_clean_files}"
