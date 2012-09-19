@@ -380,20 +380,12 @@ FUNCTION(LATEX_SETUP_VARIABLES)
     BIBTEX_COMPILER
     MAKEINDEX_COMPILER
     XINDY_COMPILER
-    DVIPS_CONVERTER
-    PS2PDF_CONVERTER
-    PDFTOPS_CONVERTER
-    LATEX2HTML_CONVERTER
     )
 
   LATEX_NEEDIT(LATEX_COMPILER latex)
   LATEX_WANTIT(PDFLATEX_COMPILER pdflatex)
   LATEX_NEEDIT(BIBTEX_COMPILER bibtex)
   LATEX_NEEDIT(MAKEINDEX_COMPILER makeindex)
-  LATEX_WANTIT(DVIPS_CONVERTER dvips)
-  LATEX_WANTIT(PS2PDF_CONVERTER ps2pdf)
-  LATEX_WANTIT(PDFTOPS_CONVERTER pdftops)
-  LATEX_WANTIT(LATEX2HTML_CONVERTER latex2html)
 
   SET(LATEX_COMPILER_FLAGS "-interaction=errorstopmode"
     CACHE STRING "Flags passed to latex.")
@@ -409,14 +401,6 @@ FUNCTION(LATEX_SETUP_VARIABLES)
     CACHE STRING "Flags passed to makeglossaries.")
   SET(MAKENOMENCLATURE_COMPILER_FLAGS ""
     CACHE STRING "Flags passed to makenomenclature.")
-  SET(DVIPS_CONVERTER_FLAGS "-Ppdf -G0 -t letter"
-    CACHE STRING "Flags passed to dvips.")
-  SET(PS2PDF_CONVERTER_FLAGS "-dMaxSubsetPct=100 -dCompatibilityLevel=1.3 -dSubsetFonts=true -dEmbedAllFonts=true -dAutoFilterColorImages=false -dAutoFilterGrayImages=false -dColorImageFilter=/FlateEncode -dGrayImageFilter=/FlateEncode -dMonoImageFilter=/FlateEncode"
-    CACHE STRING "Flags passed to ps2pdf.")
-  SET(PDFTOPS_CONVERTER_FLAGS -r 600
-    CACHE STRING "Flags passed to pdftops.")
-  SET(LATEX2HTML_CONVERTER_FLAGS ""
-    CACHE STRING "Flags passed to latex2html.")
   MARK_AS_ADVANCED(
     LATEX_COMPILER_FLAGS
     PDFLATEX_COMPILER_FLAGS
@@ -425,10 +409,6 @@ FUNCTION(LATEX_SETUP_VARIABLES)
     MAKEINDEX_COMPILER_FLAGS
     MAKEGLOSSARIES_COMPILER_FLAGS
     MAKENOMENCLATURE_COMPILER_FLAGS
-    DVIPS_CONVERTER_FLAGS
-    PS2PDF_CONVERTER_FLAGS
-    PDFTOPS_CONVERTER_FLAGS
-    LATEX2HTML_CONVERTER_FLAGS
     )
   SEPARATE_ARGUMENTS(LATEX_COMPILER_FLAGS)
   SEPARATE_ARGUMENTS(PDFLATEX_COMPILER_FLAGS)
@@ -437,10 +417,6 @@ FUNCTION(LATEX_SETUP_VARIABLES)
   SEPARATE_ARGUMENTS(MAKEINDEX_COMPILER_FLAGS)
   SEPARATE_ARGUMENTS(MAKEGLOSSARIES_COMPILER_FLAGS)
   SEPARATE_ARGUMENTS(MAKENOMENCLATURE_COMPILER_FLAGS)
-  SEPARATE_ARGUMENTS(DVIPS_CONVERTER_FLAGS)
-  SEPARATE_ARGUMENTS(PS2PDF_CONVERTER_FLAGS)
-  SEPARATE_ARGUMENTS(PDFTOPS_CONVERTER_FLAGS)
-  SEPARATE_ARGUMENTS(LATEX2HTML_CONVERTER_FLAGS)
 
   FIND_PROGRAM(IMAGEMAGICK_CONVERT convert
     DOC "The convert program that comes with ImageMagick (available at http://www.imagemagick.org)."
@@ -467,18 +443,10 @@ FUNCTION(LATEX_SETUP_VARIABLES)
 
   # Just holds extensions for known image types.  They should all be lower case.
   # For historical reasons, these are all declared in the global scope.
-  SET(LATEX_DVI_VECTOR_IMAGE_EXTENSIONS .eps CACHE INTERNAL "")
-  SET(LATEX_DVI_RASTER_IMAGE_EXTENSIONS CACHE INTERNAL "")
-  SET(LATEX_DVI_IMAGE_EXTENSIONS
-    ${LATEX_DVI_VECTOR_IMAGE_EXTENSIONS} ${LATEX_DVI_RASTER_IMAGE_EXTENSIONS}
-    CACHE INTERNAL "")
   SET(LATEX_PDF_VECTOR_IMAGE_EXTENSIONS .pdf CACHE INTERNAL "")
   SET(LATEX_PDF_RASTER_IMAGE_EXTENSIONS .png .jpeg .jpg CACHE INTERNAL "")
   SET(LATEX_PDF_IMAGE_EXTENSIONS
     ${LATEX_PDF_VECTOR_IMAGE_EXTENSIONS} ${LATEX_PDF_RASTER_IMAGE_EXTENSIONS}
-    CACHE INTERNAL "")
-  SET(LATEX_IMAGE_EXTENSIONS
-    ${LATEX_DVI_IMAGE_EXTENSIONS} ${LATEX_PDF_IMAGE_EXTENSIONS}
     CACHE INTERNAL "")
 ENDFUNCTION(LATEX_SETUP_VARIABLES)
 
@@ -610,7 +578,6 @@ ENDFUNCTION(LATEX_CONVERT_IMAGE)
 # Adds the output files to the given variables (does not replace).
 FUNCTION(LATEX_PROCESS_IMAGES dvi_outputs_var pdf_outputs_var)
   LATEX_GET_OUTPUT_PATH(output_dir)
-  SET(dvi_outputs)
   SET(pdf_outputs)
   FOREACH(file ${ARGN})
     IF (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
@@ -619,7 +586,6 @@ FUNCTION(LATEX_PROCESS_IMAGES dvi_outputs_var pdf_outputs_var)
 
       # Check to see if we need to downsample the image.
       LATEX_LIST_CONTAINS(is_raster "${extension}"
-        ${LATEX_DVI_RASTER_IMAGE_EXTENSIONS}
         ${LATEX_PDF_RASTER_IMAGE_EXTENSIONS})
       IF (LATEX_SMALL_IMAGES)
         IF (is_raster)
@@ -630,11 +596,6 @@ FUNCTION(LATEX_PROCESS_IMAGES dvi_outputs_var pdf_outputs_var)
       # Make sure the output directory exists.
       LATEX_GET_FILENAME_COMPONENT(path "${output_dir}/${file}" PATH)
       MAKE_DIRECTORY("${path}")
-
-      # Do conversions for dvi.
-      LATEX_CONVERT_IMAGE(output_files "${file}" .eps "${convert_flags}"
-        "${LATEX_DVI_IMAGE_EXTENSIONS}" "${ARGN}")
-      SET(dvi_outputs ${dvi_outputs} ${output_files})
 
       # Do conversions for pdf.
       IF (is_raster)
@@ -651,7 +612,6 @@ FUNCTION(LATEX_PROCESS_IMAGES dvi_outputs_var pdf_outputs_var)
     ENDIF (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
   ENDFOREACH(file)
 
-  SET(${dvi_outputs_var} ${dvi_outputs} PARENT_SCOPE)
   SET(${pdf_outputs_var} ${pdf_outputs} PARENT_SCOPE)
 ENDFUNCTION(LATEX_PROCESS_IMAGES)
 
@@ -764,18 +724,10 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
   # Set up target names.
   IF (LATEX_MANGLE_TARGET_NAMES)
-    SET(dvi_target      ${LATEX_TARGET}_dvi)
     SET(pdf_target      ${LATEX_TARGET}_pdf)
-    SET(ps_target       ${LATEX_TARGET}_ps)
-    SET(safepdf_target  ${LATEX_TARGET}_safepdf)
-    SET(html_target     ${LATEX_TARGET}_html)
     SET(auxclean_target ${LATEX_TARGET}_auxclean)
   ELSE (LATEX_MANGLE_TARGET_NAMES)
-    SET(dvi_target      dvi)
     SET(pdf_target      pdf)
-    SET(ps_target       ps)
-    SET(safepdf_target  safepdf)
-    SET(html_target     html)
     SET(auxclean_target auxclean)
   ENDIF (LATEX_MANGLE_TARGET_NAMES)
 
@@ -799,8 +751,6 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     ${output_dir}/${LATEX_TARGET}.toc
     ${output_dir}/${LATEX_TARGET}.lof
     ${output_dir}/${LATEX_TARGET}.xdy
-    ${output_dir}/${LATEX_TARGET}.synctex.gz
-    ${output_dir}/${LATEX_TARGET}.synctex.bak.gz
     ${output_dir}/${LATEX_TARGET}.dvi
     ${output_dir}/${LATEX_TARGET}.ps
     ${output_dir}/${LATEX_TARGET}.pdf
@@ -825,18 +775,13 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
   LATEX_PROCESS_IMAGES(dvi_images pdf_images ${image_list})
 
-  SET(make_dvi_command
-    ${CMAKE_COMMAND} -E chdir ${output_dir}
-    ${latex_build_command})
   SET(make_pdf_command
     ${CMAKE_COMMAND} -E chdir ${output_dir}
     ${pdflatex_draft_command}
     )
 
-  SET(make_dvi_depends ${LATEX_DEPENDS} ${dvi_images})
   SET(make_pdf_depends ${LATEX_DEPENDS} ${pdf_images})
   FOREACH(input ${LATEX_MAIN_INPUT} ${LATEX_INPUTS})
-    SET(make_dvi_depends ${make_dvi_depends} ${output_dir}/${input})
     SET(make_pdf_depends ${make_pdf_depends} ${output_dir}/${input})
     IF (${input} MATCHES "\\.tex$")
       STRING(REGEX REPLACE "\\.tex$" "" input_we ${input})
@@ -849,18 +794,6 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
   IF (LATEX_USE_GLOSSARY)
     FOREACH(dummy 0 1)   # Repeat these commands twice.
-      SET(make_dvi_command ${make_dvi_command}
-        COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-        ${CMAKE_COMMAND}
-        -D LATEX_BUILD_COMMAND=makeglossaries
-        -D LATEX_TARGET=${LATEX_TARGET}
-        -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
-        -D XINDY_COMPILER=${XINDY_COMPILER}
-        -D MAKEGLOSSARIES_COMPILER_FLAGS=${MAKEGLOSSARIES_COMPILER_FLAGS}
-        -P ${LATEX_USE_LATEX_LOCATION}
-        COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-        ${latex_build_command}
-        )
       SET(make_pdf_command ${make_pdf_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${CMAKE_COMMAND}
@@ -878,17 +811,6 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
   IF (LATEX_USE_NOMENCL)
     FOREACH(dummy 0 1)   # Repeat these commands twice.
-      SET(make_dvi_command ${make_dvi_command}
-        COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-        ${CMAKE_COMMAND}
-        -D LATEX_BUILD_COMMAND=makenomenclature
-        -D LATEX_TARGET=${LATEX_TARGET}
-        -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
-        -D MAKENOMENCLATURE_COMPILER_FLAGS=${MAKENOMENCLATURE_COMPILER_FLAGS}
-        -P ${LATEX_USE_LATEX_LOCATION}
-        COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-        ${latex_build_command}
-        )
       SET(make_pdf_command ${make_pdf_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${CMAKE_COMMAND}
@@ -907,9 +829,6 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     IF (LATEX_MULTIBIB_NEWCITES)
       FOREACH (multibib_auxfile ${LATEX_MULTIBIB_NEWCITES})
         LATEX_GET_FILENAME_COMPONENT(multibib_target ${multibib_auxfile} NAME_WE)
-        SET(make_dvi_command ${make_dvi_command}
-          COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-          ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${multibib_target})
         SET(make_pdf_command ${make_pdf_command}
           COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
           ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${multibib_target})
@@ -917,16 +836,12 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
           ${output_dir}/${multibib_target}.aux)
       ENDFOREACH (multibib_auxfile ${LATEX_MULTIBIB_NEWCITES})
     ELSE (LATEX_MULTIBIB_NEWCITES)
-      SET(make_dvi_command ${make_dvi_command}
-        COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-        ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET})
       SET(make_pdf_command ${make_pdf_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET})
     ENDIF (LATEX_MULTIBIB_NEWCITES)
 
     FOREACH (bibfile ${LATEX_BIBFILES})
-      SET(make_dvi_depends ${make_dvi_depends} ${output_dir}/${bibfile})
       SET(make_pdf_depends ${make_pdf_depends} ${output_dir}/${bibfile})
     ENDFOREACH (bibfile ${LATEX_BIBFILES})
   ELSE (LATEX_BIBFILES)
@@ -936,23 +851,12 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
   ENDIF (LATEX_BIBFILES)
 
   IF (LATEX_USE_INDEX)
-    SET(make_dvi_command ${make_dvi_command}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-      ${latex_build_command}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-      ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
     SET(make_pdf_command ${make_pdf_command}
       COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
       ${pdflatex_draft_command}
       COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
       ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
   ENDIF (LATEX_USE_INDEX)
-
-  SET(make_dvi_command ${make_dvi_command}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-      ${latex_build_command}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-      ${latex_build_command})
 
   SET(make_pdf_fast_command ${make_pdf_fast_command}
       COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
@@ -968,15 +872,6 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     IF (NOT GZIP)
       MESSAGE(SEND_ERROR "UseLATEX.cmake: USE_SYNTEX option requires gzip program.  Set GZIP variable.")
     ENDIF (NOT GZIP)
-    SET(make_dvi_command ${make_dvi_command}
-      COMMAND ${CMAKE_COMMAND}
-      -D LATEX_BUILD_COMMAND=correct_synctex
-      -D LATEX_TARGET=${LATEX_TARGET}
-      -D GZIP=${GZIP}
-      -D "LATEX_SOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}"
-      -D "LATEX_BINARY_DIRECTORY=${output_dir}"
-      -P ${LATEX_USE_LATEX_LOCATION}
-      )
     SET(make_pdf_command ${make_pdf_command}
       COMMAND ${CMAKE_COMMAND}
       -D LATEX_BUILD_COMMAND=correct_synctex
@@ -987,19 +882,6 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
       -P ${LATEX_USE_LATEX_LOCATION}
       )
   ENDIF (LATEX_USE_SYNCTEX)
-
-  # Add commands and targets for building dvi outputs.
-  ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${LATEX_TARGET}.dvi
-    COMMAND ${make_dvi_command}
-    DEPENDS ${make_dvi_depends}
-    )
-  IF (LATEX_DEFAULT_PDF OR LATEX_DEFAULT_SAFEPDF)
-    ADD_CUSTOM_TARGET(${dvi_target}
-      DEPENDS ${output_dir}/${LATEX_TARGET}.dvi)
-  ELSE (LATEX_DEFAULT_PDF OR LATEX_DEFAULT_SAFEPDF)
-    ADD_CUSTOM_TARGET(${dvi_target} ALL
-      DEPENDS ${output_dir}/${LATEX_TARGET}.dvi)
-  ENDIF (LATEX_DEFAULT_PDF OR LATEX_DEFAULT_SAFEPDF)
 
   # Add commands and targets for building pdf outputs (with pdflatex).
   IF (PDFLATEX_COMPILER)
@@ -1023,40 +905,6 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
         DEPENDS ${output_dir}/fast_${LATEX_TARGET}.pdf)
 
   ENDIF (PDFLATEX_COMPILER)
-
-  IF (DVIPS_CONVERTER)
-    ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${LATEX_TARGET}.ps
-      COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-        ${DVIPS_CONVERTER} ${DVIPS_CONVERTER_FLAGS} -o ${LATEX_TARGET}.ps ${LATEX_TARGET}.dvi
-      DEPENDS ${output_dir}/${LATEX_TARGET}.dvi)
-    ADD_CUSTOM_TARGET(${ps_target}
-      DEPENDS ${output_dir}/${LATEX_TARGET}.ps)
-    IF (PS2PDF_CONVERTER)
-      # Since both the pdf and safepdf targets have the same output, we
-      # cannot properly do the dependencies for both.  When selecting safepdf,
-      # simply force a recompile every time.
-      IF (LATEX_DEFAULT_SAFEPDF)
-        ADD_CUSTOM_TARGET(${safepdf_target} ALL
-          ${CMAKE_COMMAND} -E chdir ${output_dir}
-          ${PS2PDF_CONVERTER} ${PS2PDF_CONVERTER_FLAGS} ${LATEX_TARGET}.ps ${LATEX_TARGET}.pdf
-          )
-      ELSE (LATEX_DEFAULT_SAFEPDF)
-        ADD_CUSTOM_TARGET(${safepdf_target}
-          ${CMAKE_COMMAND} -E chdir ${output_dir}
-          ${PS2PDF_CONVERTER} ${PS2PDF_CONVERTER_FLAGS} ${LATEX_TARGET}.ps ${LATEX_TARGET}.pdf
-          )
-      ENDIF (LATEX_DEFAULT_SAFEPDF)
-      ADD_DEPENDENCIES(${safepdf_target} ${ps_target})
-    ENDIF (PS2PDF_CONVERTER)
-  ENDIF (DVIPS_CONVERTER)
-
-  IF (LATEX2HTML_CONVERTER)
-    ADD_CUSTOM_TARGET(${html_target}
-      ${CMAKE_COMMAND} -E chdir ${output_dir}
-      ${LATEX2HTML_CONVERTER} ${LATEX2HTML_CONVERTER_FLAGS} ${LATEX_MAIN_INPUT}
-      )
-    ADD_DEPENDENCIES(${html_target} ${LATEX_MAIN_INPUT} ${LATEX_INPUTS})
-  ENDIF (LATEX2HTML_CONVERTER)
 
   SET_DIRECTORY_PROPERTIES(.
     ADDITIONAL_MAKE_CLEAN_FILES "${auxiliary_clean_files}"
