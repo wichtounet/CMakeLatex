@@ -553,7 +553,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
     LATEX_PROCESS_IMAGES(pdf_images ${image_list})
 
-    SET(make_pdf_command
+    SET(make_pdf_command 
         ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${pdflatex_draft_command}
         )
@@ -608,13 +608,35 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     SET(make_pdf_fast_command ${make_pdf_fast_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${pdflatex_build_command})
-
+    
     # Do two pass at the end
     SET(make_pdf_command ${make_pdf_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${pdflatex_draft_command}
         COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
         ${pdflatex_build_command})
+
+    # If all features are enabled, create faster version
+    IF (LATEX_USE_INDEX AND LATEX_BIBFILES AND LATEX_USE_GLOSSARY)
+        SET(make_pdf_command
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${pdflatex_draft_command}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${CMAKE_COMMAND}
+            -D LATEX_BUILD_COMMAND=makeglossaries
+            -D LATEX_TARGET=${LATEX_TARGET}
+            -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
+            -D MAKEGLOSSARIES_COMPILER_FLAGS=${MAKEGLOSSARIES_COMPILER_FLAGS}
+            -P ${LATEX_USE_LATEX_LOCATION}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${pdflatex_draft_command}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${pdflatex_build_command})
+    ENDIF (LATEX_USE_INDEX AND LATEX_BIBFILES AND LATEX_USE_GLOSSARY)
 
     # Finally add the target to the makefile
     ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${LATEX_TARGET}.pdf
