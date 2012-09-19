@@ -486,7 +486,7 @@ ENDFUNCTION(LATEX_COPY_INPUT_FILE)
 
 FUNCTION(LATEX_USAGE command message)
     MESSAGE(SEND_ERROR
-        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [MULTIBIB_NEWCITES] <suffix_list>\n           [USE_INDEX] [USE_GLOSSARY] [USE_NOMENCL]\n           [DEFAULT_PDF] [DEFAULT_SAFEPDF]\n           [MANGLE_TARGET_NAMES])"
+        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [USE_GLOSSARY] [USE_NOMENCL]\n           [DEFAULT_PDF] [DEFAULT_SAFEPDF]\n           [MANGLE_TARGET_NAMES])"
         )
 ENDFUNCTION(LATEX_USAGE command message)
 
@@ -496,7 +496,7 @@ ENDFUNCTION(LATEX_USAGE command message)
 FUNCTION(PARSE_ADD_LATEX_ARGUMENTS command)
     LATEX_PARSE_ARGUMENTS(
         LATEX
-        "BIBFILES;MULTIBIB_NEWCITES;INPUTS;IMAGE_DIRS;IMAGES;CONFIGURE;DEPENDS"
+        "BIBFILES;INPUTS;IMAGE_DIRS;IMAGES;CONFIGURE;DEPENDS"
         "USE_INDEX;USE_GLOSSARY;USE_GLOSSARIES;USE_NOMENCL;DEFAULT_PDF;DEFAULT_SAFEPDF;MANGLE_TARGET_NAMES"
         ${ARGN}
         )
@@ -637,28 +637,13 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     ENDIF (LATEX_USE_NOMENCL)
 
     IF (LATEX_BIBFILES)
-        IF (LATEX_MULTIBIB_NEWCITES)
-            FOREACH (multibib_auxfile ${LATEX_MULTIBIB_NEWCITES})
-                LATEX_GET_FILENAME_COMPONENT(multibib_target ${multibib_auxfile} NAME_WE)
-                SET(make_pdf_command ${make_pdf_command}
-                    COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-                    ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${multibib_target})
-                SET(auxiliary_clean_files ${auxiliary_clean_files}
-                    ${output_dir}/${multibib_target}.aux)
-            ENDFOREACH (multibib_auxfile ${LATEX_MULTIBIB_NEWCITES})
-        ELSE (LATEX_MULTIBIB_NEWCITES)
-            SET(make_pdf_command ${make_pdf_command}
-                COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-                ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET})
-        ENDIF (LATEX_MULTIBIB_NEWCITES)
+        SET(make_pdf_command ${make_pdf_command}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET})
 
         FOREACH (bibfile ${LATEX_BIBFILES})
             SET(make_pdf_depends ${make_pdf_depends} ${output_dir}/${bibfile})
         ENDFOREACH (bibfile ${LATEX_BIBFILES})
-    ELSE (LATEX_BIBFILES)
-        IF (LATEX_MULTIBIB_NEWCITES)
-            MESSAGE(WARNING "MULTIBIB_NEWCITES has no effect without BIBFILES option.")
-        ENDIF (LATEX_MULTIBIB_NEWCITES)
     ENDIF (LATEX_BIBFILES)
 
     IF (LATEX_USE_INDEX)
