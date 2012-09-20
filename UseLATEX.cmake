@@ -464,7 +464,7 @@ ENDFUNCTION(LATEX_COPY_INPUT_FILE)
 
 FUNCTION(LATEX_USAGE command message)
     MESSAGE(SEND_ERROR
-        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [USE_GLOSSARY])"
+        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [FILTER_OUTPUT] [USE_GLOSSARY])"
         )
 ENDFUNCTION(LATEX_USAGE command message)
 
@@ -475,7 +475,7 @@ FUNCTION(PARSE_ADD_LATEX_ARGUMENTS command)
     LATEX_PARSE_ARGUMENTS(
         LATEX
         "BIBFILES;INPUTS;IMAGE_DIRS;IMAGES;CONFIGURE;DEPENDS"
-        "USE_INDEX;USE_GLOSSARY;USE_GLOSSARIES"
+        "USE_INDEX;FILTER_OUTPUT;USE_GLOSSARY;USE_GLOSSARIES"
         ${ARGN}
         )
 
@@ -504,6 +504,11 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     # The commands to run LaTeX.  They are repeated multiple times.
     SET(pdflatex_draft_command ${PDFLATEX_COMPILER} -draftmode -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
     SET(pdflatex_build_command ${PDFLATEX_COMPILER} -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
+
+    IF (LATEX_FILTER_OUTPUT)
+        SET(pdflatex_draft_command ${pdflatex_draft_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
+        SET(pdflatex_build_command ${pdflatex_build_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
+    ENDIF (LATEX_FILTER_OUTPUT)
 
     # Set up target names.
     SET(pdf_target      pdf)
