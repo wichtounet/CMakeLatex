@@ -14,6 +14,8 @@ length($0) < 6 { sum += 1; next }
 
 /^Overfull \\hbox/ { sum += 1; next }
 /^Underfull \\hbox/ { sum += 1; next }
+/^Overfull \\vbox/ { sum += 1; next }
+/^Underfull \\vbox/ { sum += 1; next }
 
 /./ 
 
