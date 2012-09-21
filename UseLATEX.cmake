@@ -1,6 +1,8 @@
-# File: UseLATEX.cmake
-# CMAKE commands to actually use the LaTeX compiler
-# Version: 1.9.4
+# CMake utility to compile Latex documents with pdflatex 
+# Version: 1.0.1
+# Author: Baptiste Wicht <baptiste.wicht@gmail.com>
+
+# Original statement
 # Author: Kenneth Moreland <kmorel@sandia.gov>
 #
 # Copyright 2004 Sandia Corporation.
@@ -9,8 +11,30 @@
 # U.S. Government. Redistribution and use in source and binary forms, with
 # or without modification, are permitted provided that this Notice and any
 # statement of authorship are reproduced on all copies.
+
+# The following function is defined:
+# ADD_LATEX_DOCUMENT(<tex_file>
+#                    [BIBFILES <bib_files>]
+#                    [INPUTS <input_tex_files>]
+#                    [IMAGE_DIRS] <image_directories>
+#                    [IMAGES] <image_files>
+#                    [CONFIGURE] <tex_files>
+#                    [DEPENDS] <tex_files>
+#                    [FILTER_OUTPUT]
+#                    [USE_INDEX] 
+#                    [USE_GLOSSARY])
+#
+# Adds targets that compile <tex_file>.The latex output is placed in LATEX_OUTPUT_PATH 
+# or CMAKE_CURRENT_BINARY_DIR if the former is not set.
+
+# Change log
+#
+# Version 1.0.1
+#
+# Add filter feature
 #
 # Version 1.0.0
+#
 # Clean up version of Kenneth Moreland
 
 #############################################################################
@@ -170,12 +194,6 @@ FUNCTION(LATEX_NEEDIT VAR NAME)
     ENDIF(NOT ${VAR})
 ENDFUNCTION(LATEX_NEEDIT)
 
-FUNCTION(LATEX_WANTIT VAR NAME)
-    IF (NOT ${VAR})
-        MESSAGE(STATUS "I could not find the ${NAME} command.")
-    ENDIF(NOT ${VAR})
-ENDFUNCTION(LATEX_WANTIT)
-
 FUNCTION(LATEX_SETUP_VARIABLES)
     SET(LATEX_OUTPUT_PATH "${LATEX_OUTPUT_PATH}"
         CACHE PATH "If non empty, specifies the location to place LaTeX output."
@@ -191,8 +209,7 @@ FUNCTION(LATEX_SETUP_VARIABLES)
         MAKEINDEX_COMPILER
         )
 
-    LATEX_NEEDIT(LATEX_COMPILER latex)
-    LATEX_WANTIT(PDFLATEX_COMPILER pdflatex)
+    LATEX_NEEDIT(PDFLATEX_COMPILER pdflatex)
     LATEX_NEEDIT(BIBTEX_COMPILER bibtex)
     LATEX_NEEDIT(MAKEINDEX_COMPILER makeindex)
 
