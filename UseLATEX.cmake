@@ -239,28 +239,24 @@ FUNCTION(LATEX_SETUP_VARIABLES)
     FIND_PROGRAM(IMAGEMAGICK_CONVERT convert
         DOC "The convert program that comes with ImageMagick (available at http://www.imagemagick.org)."
         )
+
     IF (NOT IMAGEMAGICK_CONVERT)
         MESSAGE(SEND_ERROR "Could not find convert program.  Please download ImageMagick from http://www.imagemagick.org and install.")
     ENDIF (NOT IMAGEMAGICK_CONVERT)
+    
+    FIND_PROGRAM(CAIRO_CONVERT cairosvg
+        DOC "Cairo SVG Converter"
+        )
 
-    OPTION(LATEX_SMALL_IMAGES
-        "If on, the raster images will be converted to 1/6 the original size.  This is because papers usually require 600 dpi images whereas most monitors only require at most 96 dpi.  Thus, smaller images make smaller files for web distributation and can make it faster to read dvi files."
-        OFF)
-    IF (LATEX_SMALL_IMAGES)
-        SET(LATEX_RASTER_SCALE 16)
-        SET(LATEX_OPPOSITE_RASTER_SCALE 100)
-    ELSE (LATEX_SMALL_IMAGES)
-        SET(LATEX_RASTER_SCALE 100)
-        SET(LATEX_OPPOSITE_RASTER_SCALE 16)
-    ENDIF (LATEX_SMALL_IMAGES)
+    SET(LATEX_RASTER_SCALE 100)
+    SET(LATEX_OPPOSITE_RASTER_SCALE 16)
 
-    # Just holds extensions for known image types.  They should all be lower case.
-    # For historical reasons, these are all declared in the global scope.
+    SET(LATEX_SVG_IMAGE_EXTENSIONS .svg CACHE INTERNAL "")
+    SET(LATEX_EPS_IMAGE_EXTENSIONS .eps CACHE INTERNAL "")
     SET(LATEX_PDF_VECTOR_IMAGE_EXTENSIONS .pdf CACHE INTERNAL "")
     SET(LATEX_PDF_RASTER_IMAGE_EXTENSIONS .png .jpeg .jpg CACHE INTERNAL "")
-    SET(LATEX_PDF_IMAGE_EXTENSIONS
-        ${LATEX_PDF_VECTOR_IMAGE_EXTENSIONS} ${LATEX_PDF_RASTER_IMAGE_EXTENSIONS}
-        CACHE INTERNAL "")
+    SET(LATEX_PDF_IMAGE_EXTENSIONS ${LATEX_PDF_VECTOR_IMAGE_EXTENSIONS} ${LATEX_PDF_RASTER_IMAGE_EXTENSIONS} CACHE INTERNAL "")
+    SET(LATEX_IMAGE_EXTENSIONS ${LATEX_PDF_IMAGE_EXTENSIONS} ${LATEX_EPS_IMAGE_EXTENSIONS} ${LATEX_SVG_IMAGE_EXTENSIONS} CACHE INTERNAL "")
 ENDFUNCTION(LATEX_SETUP_VARIABLES)
 
 FUNCTION(LATEX_GET_OUTPUT_PATH var)
@@ -288,37 +284,35 @@ FUNCTION(LATEX_ADD_CONVERT_COMMAND
         input_extension
         flags
         )
-    SET (converter ${IMAGEMAGICK_CONVERT})
-    SET (convert_flags "")
-    IF (${input_extension} STREQUAL ".eps" AND ${output_extension} STREQUAL ".pdf")
-        # ImageMagick has broken eps to pdf conversion
-        # use ps2pdf instead
-        IF (PS2PDF_CONVERTER)
-            SET (converter ${PS2PDF_CONVERTER})
-            SET (convert_flags -dEPSCrop ${PS2PDF_CONVERTER_FLAGS})
-        ELSE (PS2PDF_CONVERTER)
-            MESSAGE(SEND_ERROR "Using postscript files with pdflatex requires ps2pdf for conversion.")
-        ENDIF (PS2PDF_CONVERTER)
-    ELSEIF (${input_extension} STREQUAL ".pdf" AND ${output_extension} STREQUAL ".eps")
-        # ImageMagick can also be sketchy on pdf to eps conversion.  Not good with
-        # color spaces and tends to unnecessarily rasterize.
-        # use pdftops instead
-        IF (PDFTOPS_CONVERTER)
-            SET(converter ${PDFTOPS_CONVERTER})
-            SET(convert_flags -eps ${PDFTOPS_CONVERTER_FLAGS})
-        ELSE (PDFTOPS_CONVERTER)
-            MESSAGE(STATUS "Consider getting pdftops from Poppler to convert PDF images to EPS images.")
-            SET (convert_flags ${flags})
-        ENDIF (PDFTOPS_CONVERTER)
-    ELSE (${input_extension} STREQUAL ".eps" AND ${output_extension} STREQUAL ".pdf")
-        SET (convert_flags ${flags})
-    ENDIF (${input_extension} STREQUAL ".eps" AND ${output_extension} STREQUAL ".pdf")
 
-    ADD_CUSTOM_COMMAND(OUTPUT ${output_path}
-        COMMAND ${converter}
-        ARGS ${convert_flags} ${input_path} ${output_path}
-        DEPENDS ${input_path}
-        )
+    IF (${input_extension} STREQUAL ".svg" AND ${output_extension} STREQUAL ".pdf")
+        ADD_CUSTOM_COMMAND(OUTPUT ${output_path}
+            COMMAND ${CAIRO_CONVERT}
+            ARGS ${input_path} "-o" ${output_path}
+            DEPENDS ${input_path}
+            )
+    ELSE ()
+        SET (converter ${IMAGEMAGICK_CONVERT})
+        SET (convert_flags "")
+
+        IF (${input_extension} STREQUAL ".eps" AND ${output_extension} STREQUAL ".pdf")
+            # ImageMagick has broken eps to pdf conversion, use ps2pdf instead
+            IF (PS2PDF_CONVERTER)
+                SET (converter ${PS2PDF_CONVERTER})
+                SET (convert_flags -dEPSCrop ${PS2PDF_CONVERTER_FLAGS})
+            ELSE (PS2PDF_CONVERTER)
+                MESSAGE(SEND_ERROR "Using postscript files with pdflatex requires ps2pdf for conversion.")
+            ENDIF (PS2PDF_CONVERTER)
+        ELSE (${input_extension} STREQUAL ".eps" AND ${output_extension} STREQUAL ".pdf")
+            SET (convert_flags ${flags})
+        ENDIF (${input_extension} STREQUAL ".eps" AND ${output_extension} STREQUAL ".pdf")
+
+        ADD_CUSTOM_COMMAND(OUTPUT ${output_path}
+            COMMAND ${converter}
+            ARGS ${convert_flags} ${input_path} ${output_path}
+            DEPENDS ${input_path}
+            )
+    ENDIF()
 ENDFUNCTION(LATEX_ADD_CONVERT_COMMAND)
 
 # Makes custom commands to convert a file to a particular type.
@@ -330,10 +324,11 @@ FUNCTION(LATEX_CONVERT_IMAGE
         output_extensions
         other_files
         )
+    
     SET(output_file_list)
     SET(input_dir ${CMAKE_CURRENT_SOURCE_DIR})
+    
     LATEX_GET_OUTPUT_PATH(output_dir)
-
     LATEX_GET_FILENAME_COMPONENT(extension "${input_file}" EXT)
 
     # Check input filename for potential problems with LaTeX.
@@ -344,44 +339,22 @@ FUNCTION(LATEX_CONVERT_IMAGE
         MESSAGE(WARNING "Some LaTeX distributions have problems with image file names with multiple extensions.  Consider changing ${name}${extension} to something like ${suggested_name}.")
     ENDIF (name MATCHES ".*\\..*")
 
-    STRING(REGEX REPLACE "\\.[^.]*\$" ${output_extension} output_file
-        "${input_file}")
+    STRING(REGEX REPLACE "\\.[^.]*\$" ${output_extension} output_file "${input_file}")
 
     LATEX_LIST_CONTAINS(is_type ${extension} ${output_extensions})
+    
     IF (is_type)
-        IF (convert_flags)
-            LATEX_ADD_CONVERT_COMMAND(${output_dir}/${output_file}
-                ${input_dir}/${input_file} ${output_extension} ${extension}
-                "${convert_flags}")
-            SET(output_file_list ${output_file_list} ${output_dir}/${output_file})
-        ELSE (convert_flags)
-            # As a shortcut, we can just copy the file.
-            ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${input_file}
-                COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${input_dir}/${input_file} ${output_dir}/${input_file}
-                DEPENDS ${input_dir}/${input_file}
-                )
-            SET(output_file_list ${output_file_list} ${output_dir}/${input_file})
-        ENDIF (convert_flags)
+        ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${input_file}
+            COMMAND ${CMAKE_COMMAND}
+            ARGS -E copy ${input_dir}/${input_file} ${output_dir}/${input_file}
+            DEPENDS ${input_dir}/${input_file}
+            )
+        SET(output_file_list ${output_file_list} ${output_dir}/${input_file})
     ELSE (is_type)
-        SET(do_convert TRUE)
-        # Check to see if there is another input file of the appropriate type.
-        FOREACH(valid_extension ${output_extensions})
-            STRING(REGEX REPLACE "\\.[^.]*\$" ${output_extension} try_file
-                "${input_file}")
-            LATEX_LIST_CONTAINS(has_native_file "${try_file}" ${other_files})
-            IF (has_native_file)
-                SET(do_convert FALSE)
-            ENDIF (has_native_file)
-        ENDFOREACH(valid_extension)
-
-        # If we still need to convert, do it.
-        IF (do_convert)
-            LATEX_ADD_CONVERT_COMMAND(${output_dir}/${output_file}
-                ${input_dir}/${input_file} ${output_extension} ${extension}
-                "${convert_flags}")
-            SET(output_file_list ${output_file_list} ${output_dir}/${output_file})
-        ENDIF (do_convert)
+        LATEX_ADD_CONVERT_COMMAND(${output_dir}/${output_file}
+            ${input_dir}/${input_file} ${output_extension} ${extension}
+            "${convert_flags}")
+        SET(output_file_list ${output_file_list} ${output_dir}/${output_file})
     ENDIF (is_type)
 
     SET(${output_files_var} ${output_file_list} PARENT_SCOPE)
@@ -397,29 +370,27 @@ FUNCTION(LATEX_PROCESS_IMAGES pdf_outputs_var)
             LATEX_GET_FILENAME_COMPONENT(extension "${file}" EXT)
             SET(convert_flags)
 
-            # Check to see if we need to downsample the image.
-            LATEX_LIST_CONTAINS(is_raster "${extension}"
-                ${LATEX_PDF_RASTER_IMAGE_EXTENSIONS})
-            IF (LATEX_SMALL_IMAGES)
-                IF (is_raster)
-                    SET(convert_flags -resize ${LATEX_RASTER_SCALE}%)
-                ENDIF (is_raster)
-            ENDIF (LATEX_SMALL_IMAGES)
+            LATEX_LIST_CONTAINS(is_raster "${extension}" ${LATEX_PDF_RASTER_IMAGE_EXTENSIONS})
+            LATEX_LIST_CONTAINS(is_svg "${extension}" ${LATEX_SVG_IMAGE_EXTENSIONS})
 
             # Make sure the output directory exists.
             LATEX_GET_FILENAME_COMPONENT(path "${output_dir}/${file}" PATH)
             MAKE_DIRECTORY("${path}")
 
-            # Do conversions for pdf.
+            # Do conversions for PDF and SVG
             IF (is_raster)
                 LATEX_CONVERT_IMAGE(output_files "${file}" .png "${convert_flags}"
                     "${LATEX_PDF_IMAGE_EXTENSIONS}" "${ARGN}")
                 SET(pdf_outputs ${pdf_outputs} ${output_files})
-            ELSE (is_raster)
+            ELSEIF (is_svg)
                 LATEX_CONVERT_IMAGE(output_files "${file}" .pdf "${convert_flags}"
                     "${LATEX_PDF_IMAGE_EXTENSIONS}" "${ARGN}")
                 SET(pdf_outputs ${pdf_outputs} ${output_files})
-            ENDIF (is_raster)
+            ELSE ()
+                LATEX_CONVERT_IMAGE(output_files "${file}" .pdf "${convert_flags}"
+                    "${LATEX_PDF_IMAGE_EXTENSIONS}" "${ARGN}")
+                SET(pdf_outputs ${pdf_outputs} ${output_files})
+            ENDIF ()
         ELSE (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
             MESSAGE(WARNING "Could not find file ${CMAKE_CURRENT_SOURCE_DIR}/${file}.  Are you sure you gave relative paths to IMAGES?")
         ENDIF (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file}")
@@ -427,10 +398,6 @@ FUNCTION(LATEX_PROCESS_IMAGES pdf_outputs_var)
 
     SET(${pdf_outputs_var} ${pdf_outputs} PARENT_SCOPE)
 ENDFUNCTION(LATEX_PROCESS_IMAGES)
-
-FUNCTION(ADD_LATEX_IMAGES)
-    MESSAGE(SEND_ERROR "The ADD_LATEX_IMAGES function is deprecated.  Image directories are specified with LATEX_ADD_DOCUMENT.")
-ENDFUNCTION(ADD_LATEX_IMAGES)
 
 FUNCTION(LATEX_COPY_GLOBBED_FILES pattern dest)
     FILE(GLOB file_list ${pattern})
@@ -564,6 +531,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
         IF (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${dir})
             MESSAGE(WARNING "Image directory ${CMAKE_CURRENT_SOURCE_DIR}/${dir} does not exist.  Are you sure you gave relative directories to IMAGE_DIRS?")
         ENDIF (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${dir})
+        
         FOREACH(extension ${LATEX_IMAGE_EXTENSIONS})
             FILE(GLOB files ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/*${extension})
             FOREACH(file ${files})
