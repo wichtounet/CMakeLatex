@@ -614,6 +614,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+            ${pdflatex_draft_command}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${CMAKE_COMMAND}
