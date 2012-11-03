@@ -706,7 +706,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             ${pdflatex_draft_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_build_command})
-    ENDIF (LATEX_USE_INDEX AND LATEX_BIBFILES AND LATEX_USE_GLOSSARY)
+    ENDIF ()
 
     # Finally add the target to the makefile
     ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${LATEX_TARGET}.pdf
