@@ -22,6 +22,7 @@
 #                    [DEPENDS] <tex_files>
 #                    [FILTER_OUTPUT]
 #                    [USE_INDEX] 
+#                    [USE_NOMENCLATURE] 
 #                    [USE_GLOSSARY])
 #
 # Adds targets that compile <tex_file>.The latex output is placed in LATEX_OUTPUT_PATH 
@@ -195,6 +196,37 @@ FUNCTION(LATEX_MAKEGLOSSARIES)
     ENDFOREACH(newglossary)
 ENDFUNCTION(LATEX_MAKEGLOSSARIES)
 
+FUNCTION(LATEX_MAKENOMENCLATURE)
+    IF (NOT LATEX_TARGET)
+        MESSAGE(SEND_ERROR "Need to define LATEX_TARGET")
+    ENDIF (NOT LATEX_TARGET)
+
+    IF (NOT MAKEINDEX_COMPILER)
+        MESSAGE(SEND_ERROR "Need to define MAKEINDEX_COMPILER")
+    ENDIF (NOT MAKEINDEX_COMPILER)
+
+    SET(nomencl_out ${LATEX_TARGET}.nls)
+    SET(nomencl_in ${LATEX_TARGET}.nlo)
+    
+    IF (LATEX_FILTER_OUTPUT)
+        EXECUTE_PROCESS(
+            COMMAND ${MAKEINDEX_COMPILER} ${MAKENOMENCLATURE_COMPILER_FLAGS} ${nomencl_in} -s "nomencl.ist" -o ${nomencl_out}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            OUTPUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+            ERROR_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+            )
+        EXECUTE_PROCESS(
+            COMMAND awk -f ../index_filter.awk ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            )
+    ELSE ()
+        EXECUTE_PROCESS(
+            COMMAND ${MAKEINDEX_COMPILER} ${MAKENOMENCLATURE_COMPILER_FLAGS} ${nomencl_in} -s "nomencl.ist" -o ${nomencl_out}
+            WORKING_DIRECTORY ${LATEX_OUTPUT}
+            )
+    ENDIF ()
+ENDFUNCTION(LATEX_MAKENOMENCLATURE)
+
 #############################################################################
 # Helper functions for establishing LaTeX build.
 #############################################################################
@@ -234,18 +266,22 @@ FUNCTION(LATEX_SETUP_VARIABLES)
         CACHE STRING "Flags passed to makeindex.")
     SET(MAKEGLOSSARIES_COMPILER_FLAGS ""
         CACHE STRING "Flags passed to makeglossaries.")
+    SET(MAKENOMENCLATURE_COMPILER_FLAGS ""
+        CACHE STRING "Flags passed to makenomenclature.")
     MARK_AS_ADVANCED(
         LATEX_COMPILER_FLAGS
         PDFLATEX_COMPILER_FLAGS
         BIBTEX_COMPILER_FLAGS
         MAKEINDEX_COMPILER_FLAGS
         MAKEGLOSSARIES_COMPILER_FLAGS
+        MAKENOMENCLATURE_COMPILER_FLAGS
         )
     SEPARATE_ARGUMENTS(LATEX_COMPILER_FLAGS)
     SEPARATE_ARGUMENTS(PDFLATEX_COMPILER_FLAGS)
     SEPARATE_ARGUMENTS(BIBTEX_COMPILER_FLAGS)
     SEPARATE_ARGUMENTS(MAKEINDEX_COMPILER_FLAGS)
     SEPARATE_ARGUMENTS(MAKEGLOSSARIES_COMPILER_FLAGS)
+    SEPARATE_ARGUMENTS(MAKENOMENCLATURE_COMPILER_FLAGS)
 
     FIND_PROGRAM(IMAGEMAGICK_CONVERT convert
         DOC "The convert program that comes with ImageMagick (available at http://www.imagemagick.org)."
@@ -459,7 +495,7 @@ ENDFUNCTION(LATEX_COPY_INPUT_FILE)
 
 FUNCTION(LATEX_USAGE command message)
     MESSAGE(SEND_ERROR
-        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [FILTER_OUTPUT] [USE_GLOSSARY])"
+        "${message}\nUsage: ${command}(<tex_file>\n           [BIBFILES <bib_file> <bib_file> ...]\n           [INPUTS <tex_file> <tex_file> ...]\n           [IMAGE_DIRS <directory1> <directory2> ...]\n           [IMAGES <image_file1> <image_file2>\n           [CONFIGURE <tex_file> <tex_file> ...]\n           [DEPENDS <tex_file> <tex_file> ...]\n           [USE_INDEX] [FILTER_OUTPUT] [USE_NOMENCLATURE]  [USE_GLOSSARY])"
         )
 ENDFUNCTION(LATEX_USAGE command message)
 
@@ -470,7 +506,7 @@ FUNCTION(PARSE_ADD_LATEX_ARGUMENTS command)
     LATEX_PARSE_ARGUMENTS(
         LATEX
         "BIBFILES;INPUTS;IMAGE_DIRS;IMAGES;CONFIGURE;DEPENDS"
-        "USE_INDEX;FILTER_OUTPUT;USE_GLOSSARY;USE_GLOSSARIES"
+        "USE_INDEX;FILTER_OUTPUT;USE_GLOSSARY;USE_NOMENCLATURE;USE_GLOSSARIES"
         ${ARGN}
         )
 
@@ -598,6 +634,24 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
         ENDFOREACH(dummy)
     ENDIF (LATEX_USE_GLOSSARY)
 
+    IF (LATEX_USE_NOMENCLATURE)
+        FOREACH(dummy 0 1)   # Repeat these commands twice.
+            SET(make_pdf_command ${make_pdf_command}
+                COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+                ${CMAKE_COMMAND}
+                -D LATEX_BUILD_COMMAND=makenomenclature
+                -D LATEX_TARGET=${LATEX_TARGET}
+                -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
+                -D MAKENOMENCLATURE_COMPILER_FLAGS=${MAKENOMENCLATURE_COMPILER_FLAGS}
+                -D LATEX_OUTPUT=${output_dir}
+                -D LATEX_FILTER_OUTPUT=${LATEX_FILTER_OUTPUT}
+                -P ${LATEX_USE_LATEX_LOCATION}
+                COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
+                ${pdflatex_build_command}
+                )
+        ENDFOREACH(dummy)
+    ENDIF ()
+
     IF (LATEX_BIBFILES)
         SET(make_pdf_command ${make_pdf_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
@@ -629,7 +683,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
         ${pdflatex_build_command})
 
     # If all features are enabled, create faster version
-    IF (LATEX_USE_INDEX AND LATEX_BIBFILES AND LATEX_USE_GLOSSARY)
+    IF (LATEX_USE_INDEX AND LATEX_BIBFILES AND LATEX_USE_GLOSSARY AND NOT LATEX_USE_NOMENCLATURE)
         SET(make_pdf_command
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
@@ -652,7 +706,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             ${pdflatex_draft_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_build_command})
-    ENDIF (LATEX_USE_INDEX AND LATEX_BIBFILES AND LATEX_USE_GLOSSARY)
+    ENDIF ()
 
     # Finally add the target to the makefile
     ADD_CUSTOM_COMMAND(OUTPUT ${output_dir}/${LATEX_TARGET}.pdf
@@ -719,10 +773,17 @@ ENDFUNCTION(ADD_LATEX_DOCUMENT)
 IF (LATEX_BUILD_COMMAND)
     SET(command_handled)
 
+    # Handle glossary
     IF ("${LATEX_BUILD_COMMAND}" STREQUAL makeglossaries)
         LATEX_MAKEGLOSSARIES()
         SET(command_handled TRUE)
     ENDIF ("${LATEX_BUILD_COMMAND}" STREQUAL makeglossaries)
+
+    # Handle nomenclature
+    IF ("${LATEX_BUILD_COMMAND}" STREQUAL makenomenclature)
+        LATEX_MAKENOMENCLATURE()
+        SET(command_handled TRUE)
+    ENDIF ("${LATEX_BUILD_COMMAND}" STREQUAL makenomenclature)
 
     IF (NOT command_handled)
         MESSAGE(SEND_ERROR "Unknown command: ${LATEX_BUILD_COMMAND}")
