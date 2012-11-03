@@ -28,16 +28,6 @@
 # Adds targets that compile <tex_file>.The latex output is placed in LATEX_OUTPUT_PATH 
 # or CMAKE_CURRENT_BINARY_DIR if the former is not set.
 
-# Change log
-#
-# Version 1.0.1
-#
-# Add filter feature
-#
-# Version 1.0.0
-#
-# Clean up version of Kenneth Moreland
-
 #############################################################################
 # Find the location of myself while originally executing.  If you do this
 # inside of a macro, it will recode where the macro was invoked.
