@@ -506,9 +506,9 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     # The command to create the bibliography
     SET(bibtex_command ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET})
 
-    IF (LATEX_FILTER_OUTPUT)
-        SET(pdflatex_draft_command ${pdflatex_draft_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
-        SET(pdflatex_build_command ${pdflatex_build_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
+    IF (LATEX_FILTER_OUTPUT)                                       
+        SET(pdflatex_draft_command ${pdflatex_draft_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | sed \"s/\\\\[.\\+\\\\]//\" | awk -f filter.awk)
+        SET(pdflatex_build_command ${pdflatex_build_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | sed \"s/\\\\[.\\+\\\\]//\" | awk -f filter.awk)
         
         SET(makeindex_command ${makeindex_command} | awk -f index_filter.awk)
         SET(bibtex_command ${bibtex_command} | awk -f bibtex_filter.awk)
