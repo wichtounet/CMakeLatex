@@ -129,7 +129,6 @@ ENDFUNCTION(LATEX_GET_FILENAME_COMPONENT)
 FUNCTION(LATEX_MAKEGLOSSARIES)
     # This is really a bare bones port of the makeglossaries perl script into
     # CMake scripting.
-    MESSAGE("**************************** In makeglossaries")
     IF (NOT LATEX_TARGET)
         MESSAGE(SEND_ERROR "Need to define LATEX_TARGET")
     ENDIF (NOT LATEX_TARGET)
@@ -153,7 +152,6 @@ FUNCTION(LATEX_MAKEGLOSSARIES)
         istfile ${istfile_line}
         )
 
-    MESSAGE("*************** Using makeindex")
     IF (NOT MAKEINDEX_COMPILER)
         MESSAGE(SEND_ERROR "Need to define MAKEINDEX_COMPILER")
     ENDIF (NOT MAKEINDEX_COMPILER)
@@ -176,10 +174,23 @@ FUNCTION(LATEX_MAKEGLOSSARIES)
             "${LATEX_TARGET}.\\4" glossary_in ${newglossary}
             )
 
-        MESSAGE("${MAKEINDEX_COMPILER} ${MAKEGLOSSARIES_COMPILER_FLAGS} -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}")
-        EXEC_PROGRAM(${MAKEINDEX_COMPILER} ARGS ${MAKEGLOSSARIES_COMPILER_FLAGS}
-            -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}
-            )
+        IF (LATEX_FILTER_OUTPUT)
+            EXECUTE_PROCESS(
+                COMMAND ${MAKEINDEX_COMPILER} ${MAKEGLOSSARIES_COMPILER_FLAGS} -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                OUTPUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+                ERROR_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+                )
+            EXECUTE_PROCESS(
+                COMMAND awk -f ../index_filter.awk ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                )
+        ELSE ()
+            EXECUTE_PROCESS(
+                COMMAND ${MAKEINDEX_COMPILER} ${MAKEGLOSSARIES_COMPILER_FLAGS} -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}
+                WORKING_DIRECTORY ${LATEX_OUTPUT}
+                )
+        ENDIF (LATEX_FILTER_OUTPUT)
 
     ENDFOREACH(newglossary)
 ENDFUNCTION(LATEX_MAKEGLOSSARIES)
@@ -489,9 +500,14 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     SET(pdflatex_draft_command ${PDFLATEX_COMPILER} -draftmode -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
     SET(pdflatex_build_command ${PDFLATEX_COMPILER} -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
 
+    # The command to create the index
+    SET(makeindex_command ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
+
     IF (LATEX_FILTER_OUTPUT)
         SET(pdflatex_draft_command ${pdflatex_draft_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
         SET(pdflatex_build_command ${pdflatex_build_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
+        
+        SET(makeindex_command ${makeindex_command} | awk -f index_filter.awk)
     ENDIF (LATEX_FILTER_OUTPUT)
 
     # Set up target names.
@@ -569,6 +585,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
                 -D LATEX_TARGET=${LATEX_TARGET}
                 -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
                 -D MAKEGLOSSARIES_COMPILER_FLAGS=${MAKEGLOSSARIES_COMPILER_FLAGS}
+                -D LATEX_OUTPUT=${output_dir}
+                -D LATEX_FILTER_OUTPUT=${LATEX_FILTER_OUTPUT}
                 -P ${LATEX_USE_LATEX_LOCATION}
                 COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
                 ${pdflatex_draft_command}
@@ -588,10 +606,9 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
     IF (LATEX_USE_INDEX)
         SET(make_pdf_command ${make_pdf_command}
-            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${pdflatex_draft_command}
-            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir} ${pdflatex_draft_command}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir} ${makeindex_command} 
+            )
     ENDIF (LATEX_USE_INDEX)
 
     # In fast mode, only do one pass
@@ -616,13 +633,15 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx
+            ${makeindex_command} 
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${CMAKE_COMMAND}
             -D LATEX_BUILD_COMMAND=makeglossaries
             -D LATEX_TARGET=${LATEX_TARGET}
             -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
             -D MAKEGLOSSARIES_COMPILER_FLAGS=${MAKEGLOSSARIES_COMPILER_FLAGS}
+            -D LATEX_OUTPUT=${output_dir}
+            -D LATEX_FILTER_OUTPUT=${LATEX_FILTER_OUTPUT}
             -P ${LATEX_USE_LATEX_LOCATION}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
