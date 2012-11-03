@@ -492,6 +492,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     IF (LATEX_FILTER_OUTPUT)
         SET(pdflatex_draft_command ${pdflatex_draft_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
         SET(pdflatex_build_command ${pdflatex_build_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
+        
+        SET(makeindex_command ${makeindex_command} | awk -f index_filter.awk)
     ENDIF (LATEX_FILTER_OUTPUT)
 
     # Set up target names.
@@ -615,7 +617,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${make_index_command} 
+            ${makeindex_command} 
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${CMAKE_COMMAND}
             -D LATEX_BUILD_COMMAND=makeglossaries
