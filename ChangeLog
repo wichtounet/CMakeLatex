@@ -1,0 +1,16 @@
+CMakeLatex 1.0.2 - 2012.11.02
+
+* Add support for nomenclature
+* Add filters for bibtex
+* Add filters for makeindex
+* Improve filters
+
+CMakeLatex 1.0.1
+
+* Add filters feature
+
+CMakeLatex 1.0.0
+
+* Fork UseLatex.cmake of Kenneth Moreland
+* Cleaning
+* Use only pdflatex

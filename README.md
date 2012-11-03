@@ -1,7 +1,7 @@
-CMakeLatex
-==========
+CMakeLatex 1.0.2
+================
 
-Simple CMake configuration for Latex
+Simple CMake configuration for Latex. This configuration use pdflatex and generates only pdf. 
 
 This is a fork of the UseLATEX.cmake project of Kenneth Moreland. This project will not necessarily follow the upstream project. 
 
