@@ -1,5 +1,5 @@
 # CMake utility to compile Latex documents with pdflatex 
-# Version: 1.0.1
+# Version: 1.0.2
 # Author: Baptiste Wicht <baptiste.wicht@gmail.com>
 
 # Original statement
