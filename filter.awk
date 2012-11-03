@@ -29,6 +29,7 @@ length($0) < 6 { sum += 1; next }
 /^Package pgfplots: loading/ { sum += 1; next }
 /^\*geometry\*/ { sum += 1; next }
 /^</ { sum += 1; next }
+/^ </ { sum += 1; next }
 /^pdfTex warning/ { sum += 1; next }
 /^Transcript written/ { sum += 1; next }
 /^====/ { sum += 1; next }
