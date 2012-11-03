@@ -129,7 +129,6 @@ ENDFUNCTION(LATEX_GET_FILENAME_COMPONENT)
 FUNCTION(LATEX_MAKEGLOSSARIES)
     # This is really a bare bones port of the makeglossaries perl script into
     # CMake scripting.
-    MESSAGE("**************************** In makeglossaries")
     IF (NOT LATEX_TARGET)
         MESSAGE(SEND_ERROR "Need to define LATEX_TARGET")
     ENDIF (NOT LATEX_TARGET)
@@ -153,7 +152,6 @@ FUNCTION(LATEX_MAKEGLOSSARIES)
         istfile ${istfile_line}
         )
 
-    MESSAGE("*************** Using makeindex")
     IF (NOT MAKEINDEX_COMPILER)
         MESSAGE(SEND_ERROR "Need to define MAKEINDEX_COMPILER")
     ENDIF (NOT MAKEINDEX_COMPILER)
@@ -176,7 +174,6 @@ FUNCTION(LATEX_MAKEGLOSSARIES)
             "${LATEX_TARGET}.\\4" glossary_in ${newglossary}
             )
 
-        MESSAGE("${MAKEINDEX_COMPILER} ${MAKEGLOSSARIES_COMPILER_FLAGS} -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}")
         EXEC_PROGRAM(${MAKEINDEX_COMPILER} ARGS ${MAKEGLOSSARIES_COMPILER_FLAGS}
             -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}
             )
@@ -489,6 +486,9 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     SET(pdflatex_draft_command ${PDFLATEX_COMPILER} -draftmode -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
     SET(pdflatex_build_command ${PDFLATEX_COMPILER} -shell-escape ${PDFLATEX_COMPILER_FLAGS} ${LATEX_MAIN_INPUT})
 
+    # The command to create the index
+    SET(makeindex_command ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
+
     IF (LATEX_FILTER_OUTPUT)
         SET(pdflatex_draft_command ${pdflatex_draft_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
         SET(pdflatex_build_command ${pdflatex_build_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
@@ -588,10 +588,9 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
     IF (LATEX_USE_INDEX)
         SET(make_pdf_command ${make_pdf_command}
-            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${pdflatex_draft_command}
-            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir} ${pdflatex_draft_command}
+            COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir} ${makeindex_command} 
+            )
     ENDIF (LATEX_USE_INDEX)
 
     # In fast mode, only do one pass
@@ -616,7 +615,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx
+            ${make_index_command} 
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${CMAKE_COMMAND}
             -D LATEX_BUILD_COMMAND=makeglossaries
