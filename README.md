@@ -1,5 +1,5 @@
-CMakeLatex
-==========
+CMakeLatex 1.0.2
+================
 
 Simple CMake configuration for Latex
 
