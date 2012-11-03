@@ -503,11 +503,15 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     # The command to create the index
     SET(makeindex_command ${MAKEINDEX_COMPILER} ${MAKEINDEX_COMPILER_FLAGS} ${LATEX_TARGET}.idx)
 
+    # The command to create the bibliography
+    SET(bibtex_command ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET})
+
     IF (LATEX_FILTER_OUTPUT)
         SET(pdflatex_draft_command ${pdflatex_draft_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
         SET(pdflatex_build_command ${pdflatex_build_command} | awk -f reverse.awk | awk -f compose.awk | awk -f reverse.awk | awk -f filter.awk)
         
         SET(makeindex_command ${makeindex_command} | awk -f index_filter.awk)
+        SET(bibtex_command ${bibtex_command} | awk -f bibtex_filter.awk)
     ENDIF (LATEX_FILTER_OUTPUT)
 
     # Set up target names.
@@ -597,7 +601,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     IF (LATEX_BIBFILES)
         SET(make_pdf_command ${make_pdf_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET})
+            ${bibtex_command}
+            )
 
         FOREACH (bibfile ${LATEX_BIBFILES})
             SET(make_pdf_depends ${make_pdf_depends} ${output_dir}/${bibfile})
@@ -629,7 +634,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
-            ${BIBTEX_COMPILER} ${BIBTEX_COMPILER_FLAGS} ${LATEX_TARGET}
+            ${bibtex_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
