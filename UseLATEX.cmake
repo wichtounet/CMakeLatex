@@ -174,9 +174,23 @@ FUNCTION(LATEX_MAKEGLOSSARIES)
             "${LATEX_TARGET}.\\4" glossary_in ${newglossary}
             )
 
-        EXEC_PROGRAM(${MAKEINDEX_COMPILER} ARGS ${MAKEGLOSSARIES_COMPILER_FLAGS}
-            -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}
-            )
+        IF (LATEX_FILTER_OUTPUT)
+            EXECUTE_PROCESS(
+                COMMAND ${MAKEINDEX_COMPILER} ${MAKEGLOSSARIES_COMPILER_FLAGS} -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                OUTPUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+                ERROR_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+                )
+            EXECUTE_PROCESS(
+                COMMAND awk -f ../index_filter.awk ${CMAKE_CURRENT_SOURCE_DIR}/.tmp.log
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                )
+        ELSE ()
+            EXECUTE_PROCESS(
+                COMMAND ${MAKEINDEX_COMPILER} ${MAKEGLOSSARIES_COMPILER_FLAGS} -s ${istfile} -t ${glossary_log} -o ${glossary_out} ${glossary_in}
+                WORKING_DIRECTORY ${LATEX_OUTPUT}
+                )
+        ENDIF (LATEX_FILTER_OUTPUT)
 
     ENDFOREACH(newglossary)
 ENDFUNCTION(LATEX_MAKEGLOSSARIES)
@@ -571,6 +585,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
                 -D LATEX_TARGET=${LATEX_TARGET}
                 -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
                 -D MAKEGLOSSARIES_COMPILER_FLAGS=${MAKEGLOSSARIES_COMPILER_FLAGS}
+                -D LATEX_OUTPUT=${output_dir}
+                -D LATEX_FILTER_OUTPUT=${LATEX_FILTER_OUTPUT}
                 -P ${LATEX_USE_LATEX_LOCATION}
                 COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
                 ${pdflatex_draft_command}
@@ -624,6 +640,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
             -D LATEX_TARGET=${LATEX_TARGET}
             -D MAKEINDEX_COMPILER=${MAKEINDEX_COMPILER}
             -D MAKEGLOSSARIES_COMPILER_FLAGS=${MAKEGLOSSARIES_COMPILER_FLAGS}
+            -D LATEX_OUTPUT=${output_dir}
+            -D LATEX_FILTER_OUTPUT=${LATEX_FILTER_OUTPUT}
             -P ${LATEX_USE_LATEX_LOCATION}
             COMMAND ${CMAKE_COMMAND} -E chdir ${output_dir}
             ${pdflatex_draft_command}
