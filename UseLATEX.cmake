@@ -515,8 +515,8 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
     ENDIF (LATEX_FILTER_OUTPUT)
 
     # Set up target names.
-    SET(pdf_target      pdf)
-    SET(auxclean_target auxclean)
+    SET(pdf_target      ${LATEX_TARGET})
+    SET(auxclean_target ${LATEX_TARGET}_clean)
 
     # Probably not all of these will be generated, but they could be.
     # Note that the aux file is added later.
@@ -667,7 +667,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
         COMMAND ${make_pdf_fast_command}
         DEPENDS ${make_pdf_depends}
         )
-    ADD_CUSTOM_TARGET(fast
+    ADD_CUSTOM_TARGET(fast_${LATEX_TARGET}
         DEPENDS ${output_dir}/fast_${LATEX_TARGET}.pdf)
 
     SET_DIRECTORY_PROPERTIES(.
@@ -678,6 +678,7 @@ FUNCTION(ADD_LATEX_TARGETS_INTERNAL)
         COMMENT "Cleaning auxiliary LaTeX files."
         COMMAND ${CMAKE_COMMAND} -E remove ${auxiliary_clean_files}
         )
+
 ENDFUNCTION(ADD_LATEX_TARGETS_INTERNAL)
 
 FUNCTION(ADD_LATEX_TARGETS)
